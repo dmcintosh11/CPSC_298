@@ -1,0 +1,145 @@
+User
+07:05 PM
+
+Write the python code for a simple tetris game
+Jan - Logo
+Assistant
+07:05 PM
+
+Token Speed: 5.89t/s
+Creating a simple Tetris game in Python involves using the curses library to handle the terminal graphics and managing the shapes and game logic. Here's an example of a simple Tetris game:
+
+import random
+import time
+import curses
+
+HEIGHT = 20
+WIDTH = 10
+
+SHAPES = {
+    0: {'shape': [['.'] * WIDTH for _ in range(3)], 'color': curses.COLOR_BLUE},
+    1: {'shape': [['o'] * WIDTH for _ in range(2)] + [['.'] * (WIDTH - 2) for _ in range(2)], 'color': curses.COLOR_GREEN},
+    2: {'shape': [['.']] * 4 + [['x'] * WIDTH for _ in range(3)], 'color': curses.COLOR_RED},
+    3: {'shape': [['.']] * 4 + [['x'] for _ in range(WIDTH)] + [['.'] * (WIDTH - 2) for _ in range(3)], 'color': curses.COLOR_CYAN},
+    4: {'shape': [['.']] * 4 + [['o', 'o']] + [['.'] * (WIDTH - 2) for _ in range(3)], 'color': curses.COLOR_MAGENTA},
+    5: {'shape': [['.']] * 4 + [['o', '.']] * 2 + ['x' for _ in range(WIDTH)], 'color': curses.COLOR_YELLOW},
+    6: {'shape': [['.']] * 4 + [['x', '.']] * 2 + ['o' for _ in range(WIDTH)], 'color': curses.COLOR_WHITE},
+    7: {'shape': [['.']] * 4 + [['x', 'x']] + ['.' for _ in range(WIDTH - 2) for _ in range(3)], 'color': curses.COLOR_GREEN},
+}
+
+class Block:
+    def __init__(self, shape, x, y):
+        self.shape = shape
+        self.x = x
+        self.y = y
+
+class Tetris:
+    def __init__(self):
+        self.stdscr = curses.initscr()
+        curses.curs_set(False)
+        self.board = [['.'] * WIDTH for _ in range(HEIGHT)]
+        self.next_shape = None
+        self.current_block = None
+        self.score = 0
+
+    def clear_board(self):
+        for row in self.board:
+            print(''.join([' '.join([str(cell) for cell in col]) for col in row]))
+
+    def draw_next_shape(self):
+        x, y = len(self.board[0]) + 3, HEIGHT // 2 - 1
+        for row in self.next_shape['shape']:
+            for col in row:
+                if col != '.':
+                    self.stdscr.addstr(y, x, str(int(col)), curses.text_attr(self.next_shape['color']))
+                    self.board[y][x] = col
+            x += 1
+
+    def draw_current_shape(self):
+        for row in self.current_block['shape']:
+            for col in row:
+                if col != '.':
+                    self.stdscr.addstr(self.current_block['y'] + HEIGHT, self.current_block['x'], str(int(col)), curses.text_attr(self.current_block['shape']['color']))
+                    self.board[self.current_block['y'] + HEIGHT][self.current_block['x']] = col
+
+    def move_left(self):
+        if self.is_valid_move('left'):
+            self.current_block['x'] -= 1
+
+    def move_right(self):
+        if self.is_valid_move('right'):
+            self.current_block['x'] += 1
+
+    def is_valid_move(self, direction):
+        dx = 1 if direction == 'right' else -1
+        return all(self.board[y][self.current_block['x'] + dx] != SHAPES[self.current_shape]['shape'][0][0] for y in range(HEIGHT))
+
+    def rotate(self):
+        shapes = SHAPES[self.current_shape]
+        new_shape = {}
+        for key, value in list(SHAPES[self.current_shape].items())[:-1]:
+            new_shape[key] = shapes[next(iter(SHAPES))]['shape'][::-1][:][:] if key != self.current_shape else value['shape']
+        self.current_block = Block(new_shape, self.current_block['x'], self.current_block['y'])
+
+    def drop(self):
+        while self.is_valid_move('down'):
+            self.current_block['y'] += 1
+        self.freeze()
+
+    def freeze(self):
+        for y, row in enumerate(self.current_block['shape']):
+            for x, cell in enumerate(row):
+                if cell != '.':
+                    self.board[self.current_block['y'] + HEIGHT][self.current_block['x'] + x] = cell
+        self.check_lines()
+        self.next_shape = self.get_random_shape()
+        self.current_block = None
+
+    def check_lines(self):
+        lines_cleared = []
+        for i in range(HEIGHT):
+            row = self.board[i]
+            if all(cell == '.' for cell in row):
+                lines_cleared.append(i)
+                self.board[i] = ['.'] * WIDTH
+                for j in range(i, HEIGHT):
+                    self.board[j] = self.board[j - 1][:]
+        if lines_cleared:
+            self.score += len(lines_cleared) * 100
+            print("Lines Cleared: ", len(lines_cleared), "Score: ", self.score)
+
+    def get_random_shape(self):
+        shapes = list(SHAPES.keys())
+        return random.choice(shapes)
+
+    def game_over(self):
+        for row in self.board[:-HEIGHT]:
+            if not all(cell == '.' for cell in row):
+                return True
+        return False
+
+    def play(self):
+        self.current_shape = random.choice(list(SHAPES.keys()))
+        self.current_block = Block(SHAPES[self.current_shape], 3, 0)
+        self.next_shape = None
+
+        while not self.game_over():
+            self.clear_board()
+            self.draw_next_shape()
+            self.draw_current_shape()
+            self.stdscr.getch()
+            keys = curses.keyname(curses.getch())
+            if keys in ['left', 'right']:
+                self.move_in_direction(keys[0])
+            elif keys == 'down':
+                self.drop()
+            elif keys in ['w', 'up']:
+                self.rotate()
+        curses.endwin()
+
+if __name__ == "__main__":
+    tetris = Tetris()
+    tetris.play()
+This code will create a simple Tetris game using the terminal with basic controls (left, right, down, rotate). Keep in mind that the code may need some adjustments depending on your system or curses library version.
+
+
